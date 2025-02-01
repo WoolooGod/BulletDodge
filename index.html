@@ -375,16 +375,19 @@ canvas.addEventListener("touchend", (e) => {
 function updatePlayerPosition() {
     if (isGameOver) return;
 
-    // Calculate the movement offset
+    // Calculate the movement offset based on the touch position
     const offsetX = touchX;
     const offsetY = touchY;
 
     // Ensure the player stays within the movement box (playerBoxSize)
-    const newX = Math.max(centerX - playerBoxSize / 2, Math.min(centerX + playerBoxSize / 2 - playerSize, offsetX - playerSize / 2));
-    const newY = Math.max(centerY - playerBoxSize / 2, Math.min(centerY + playerBoxSize / 2 - playerSize, offsetY - playerSize / 2));
+    // Constrain playerX and playerY to the center of the box
+    const minX = centerX - playerBoxSize / 2;
+    const maxX = centerX + playerBoxSize / 2 - playerSize;
+    const minY = centerY - playerBoxSize / 2;
+    const maxY = centerY + playerBoxSize / 2 - playerSize;
 
-    playerX = newX;
-    playerY = newY;
+    playerX = Math.max(minX, Math.min(maxX, offsetX - playerSize / 2));
+    playerY = Math.max(minY, Math.min(maxY, offsetY - playerSize / 2));
 }
 
 // Game loop
