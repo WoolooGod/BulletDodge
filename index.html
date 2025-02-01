@@ -347,6 +347,60 @@ function restartGame() {
 
         // Start the game loop and timer (but only after the start button is clicked)
         updateHighscoreDisplay(); // Display highscore when page loads
+
+    // Track touch position and move the player accordingly
+    let touchX = 0;
+    let touchY = 0;
+
+    // Touch event listeners
+    canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault(); // Prevent scrolling or zooming
+        touchX = e.touches[0].clientX; // Get the X position of the touch
+        touchY = e.touches[0].clientY; // Get the Y position of the touch
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+        e.preventDefault(); // Prevent scrolling or zooming
+        touchX = e.touches[0].clientX; // Update the X position of the touch
+        touchY = e.touches[0].clientY; // Update the Y position of the touch
+    });
+
+    canvas.addEventListener("touchend", (e) => {
+        e.preventDefault(); // Prevent scrolling or zooming
+        // Optionally, add functionality for touch end if needed
+    });
+
+    // Replace the original updatePlayerPosition function with this one
+    function updatePlayerPosition() {
+        if (isGameOver) return;
+
+        // Calculate new player position based on touch
+        const offsetX = touchX - canvas.width / 2;
+        const offsetY = touchY - canvas.height / 2;
+
+        // Limit the movement within the box
+        const newX = Math.max(centerX - playerBoxSize / 2, Math.min(centerX + playerBoxSize / 2 - playerSize, offsetX));
+        const newY = Math.max(centerY - playerBoxSize / 2, Math.min(centerY + playerBoxSize / 2 - playerSize, offsetY));
+
+        playerX = newX;
+        playerY = newY;
+    }
+
+    // Original game update loop
+    function update() {
+        if (isGameOver) return;
+
+        // Create bullets at random intervals
+        if (Math.random() < 0.02) {
+            createBullet();
+        }
+
+        updatePlayerPosition(); // Updated player position with touch
+        updateBullets();
+        checkCollisions();
+        draw();
+        requestAnimationFrame(update);
+    }
     </script>
 </body>
 </html>
