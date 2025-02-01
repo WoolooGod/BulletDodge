@@ -347,60 +347,83 @@ function restartGame() {
 
         // Start the game loop and timer (but only after the start button is clicked)
         updateHighscoreDisplay(); // Display highscore when page loads
+// Track touch position and move the player accordingly
+let touchX = 0;
+let touchY = 0;
 
-    // Track touch position and move the player accordingly
-    let touchX = 0;
-    let touchY = 0;
+// Touch event listeners
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Prevent scrolling or zooming
+    const rect = canvas.getBoundingClientRect(); // Get the position of the canvas
+    touchX = e.touches[0].clientX - rect.left; // Get the X position of the touch relative to the canvas
+    touchY = e.touches[0].clientY - rect.top;  // Get the Y position of the touch relative to the canvas
+});
 
-    // Touch event listeners
-    canvas.addEventListener("touchstart", (e) => {
-        e.preventDefault(); // Prevent scrolling or zooming
-        touchX = e.touches[0].clientX; // Get the X position of the touch
-        touchY = e.touches[0].clientY; // Get the Y position of the touch
-    });
+canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault(); // Prevent scrolling or zooming
+    const rect = canvas.getBoundingClientRect(); // Get the position of the canvas
+    touchX = e.touches[0].clientX - rect.left; // Update the X position of the touch relative to the canvas
+    touchY = e.touches[0].clientY - rect.top;  // Update the Y position of the touch relative to the canvas
+});
 
-    canvas.addEventListener("touchmove", (e) => {
-        e.preventDefault(); // Prevent scrolling or zooming
-        touchX = e.touches[0].clientX; // Update the X position of the touch
-        touchY = e.touches[0].clientY; // Update the Y position of the touch
-    });
+canvas.addEventListener("touchend", (e) => {
+    e.preventDefault(); // Prevent scrolling or zooming
+    // Optionally, add functionality for touch end if needed
+});
 
-    canvas.addEventListener("touchend", (e) => {
-        e.preventDefault(); // Prevent scrolling or zooming
-        // Optionally, add functionality for touch end if needed
-    });
+// Update player position based on touch
+function updatePlayerPosition() {
+    if (isGameOver) return;
 
-    // Replace the original updatePlayerPosition function with this one
-    function updatePlayerPosition() {
-        if (isGameOver) return;
+    // Calculate the movement offset
+    const offsetX = touchX;
+    const offsetY = touchY;
 
-        // Calculate new player position based on touch
-        const offsetX = touchX - canvas.width / 2;
-        const offsetY = touchY - canvas.height / 2;
+    // Ensure the player stays within the movement box (playerBoxSize)
+    const newX = Math.max(centerX - playerBoxSize / 2, Math.min(centerX + playerBoxSize / 2 - playerSize, offsetX - playerSize / 2));
+    const newY = Math.max(centerY - playerBoxSize / 2, Math.min(centerY + playerBoxSize / 2 - playerSize, offsetY - playerSize / 2));
 
-        // Limit the movement within the box
-        const newX = Math.max(centerX - playerBoxSize / 2, Math.min(centerX + playerBoxSize / 2 - playerSize, offsetX));
-        const newY = Math.max(centerY - playerBoxSize / 2, Math.min(centerY + playerBoxSize / 2 - playerSize, offsetY));
+    playerX = newX;
+    playerY = newY;
+}
 
-        playerX = newX;
-        playerY = newY;
+// Game loop
+function update() {
+    if (isGameOver) return;
+
+    // Create bullets at random intervals
+    if (Math.random() < 0.02) {
+        createBullet();
     }
 
-    // Original game update loop
-    function update() {
-        if (isGameOver) return;
+    updatePlayerPosition(); // Updated player position with touch
+    updateBullets();
+    checkCollisions();
+    draw();
+    requestAnimationFrame(update);
+}
 
-        // Create bullets at random intervals
-        if (Math.random() < 0.02) {
-            createBullet();
-        }
+// Draw everything on the canvas
+function draw() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        updatePlayerPosition(); // Updated player position with touch
-        updateBullets();
-        checkCollisions();
-        draw();
-        requestAnimationFrame(update);
+    // Draw the player (white square)
+    ctx.fillStyle = "white";
+    ctx.fillRect(playerX, playerY, playerSize, playerSize);
+
+    // Draw bullets
+    for (let bullet of bullets) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(bullet.x, bullet.y, 10, 10);
     }
+
+    // Draw player box boundary (visual)
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(centerX - playerBoxSize / 2, centerY - playerBoxSize / 2, playerBoxSize, playerBoxSize);  // Box now centered correctly
+}
+
     </script>
 </body>
 </html>
