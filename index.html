@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bullet Dodge Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            overflow: hidden;
+            font-family: 'VT323', monospace; /* VT323 font for 8-bit style */
+        }
+        canvas {
+            display: block;
+        }
+        #retryButton {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            color: black;
+            font-size: 30px;
+            padding: 15px 30px;
+            border: 2px solid black;
+            cursor: pointer;
+            display: none;
+            border-radius: 5px;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.8);
+        }
+        #retryButton:hover {
+            background-color: #f0f0f0;
+        }
+        #retryButton:active {
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+        #timer {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            color: white;
+            font-family: 'VT323', monospace;
+        }
+        #highscore {
+            position: absolute;
+            top: 50px; /* Display highscore slightly below the timer */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            color: white;
+            font-family: 'VT323', monospace;
+            display: none; /* Initially hidden */
+        }
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: 'VT323', monospace;
+            color: white;
+        }
+        #startButton {
+            background-color: white;
+            color: black;
+            font-size: 30px;
+            padding: 15px 30px;
+            border: 2px solid black;
+            cursor: pointer;
+            border-radius: 5px;
+            text-transform: uppercase;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.8);
+        }
+        #startButton:hover {
+            background-color: #f0f0f0;
+        }
+        #startButton:active {
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="retryButton">Retry</button>
+    <div id="timer">0:00</div>
+    <div id="highscore">High Score: 0:00</div>
+    <div id="menu">
+        <button id="startButton">Start Game</button>
+    </div>
+
+    <audio id="backgroundMusic" loop>
+        <source src="music/song1.mp3" type="audio/mp3">
+    </audio>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const retryButton = document.getElementById("retryButton");
+        const timerElement = document.getElementById("timer");
+        const highscoreElement = document.getElementById("highscore");
+        const startButton = document.getElementById("startButton");
+        const backgroundMusic = document.getElementById("backgroundMusic");
+        const menu = document.getElementById("menu");
+
+        // List of available songs
+        const songs = [
+            "song1.mp3",
+            "song2.mp3",
+            "song3.mp3",
+            "song4.mp3",
+            "song5.mp3",
+            "song6.mp3",
+            "song7.mp3",
+            "song8.mp3"
+        ];
+
+        // Function to randomly choose a song from the list
+        function chooseRandomSong() {
+            const randomSong = songs[Math.floor(Math.random() * songs.length)];
+            backgroundMusic.src = `music/${randomSong}`;
+        }
+
+        // Set canvas size when the game starts
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Player settings
+        const playerSize = 50;
+        const playerSpeed = 6;
+
+        // Game settings
+        const playerBoxSize = 3 * playerSize; // Box size is 3 times the player's size
+        const centerX = canvas.width / 2; // Center of canvas horizontally
+        const centerY = canvas.height / 2; // Center of canvas vertically
+
+        let playerX = centerX - playerSize / 2; // Player starts inside the box, centered
+        let playerY = centerY - playerSize / 2; // Player starts inside the box, centered
+        let isGameOver = false;
+
+        // Bullet settings
+        const bullets = [];
+        const bulletSpeed = 5;
+
+        // Timer settings
+        let timer = 0;
+        let timerInterval;
+
+        // Highscore settings (using localStorage to persist the highscore)
+        let highscore = localStorage.getItem('highscore') ? parseInt(localStorage.getItem('highscore')) : 0;
+
+        // Update highscore display
+        function updateHighscoreDisplay() {
+            highscoreElement.textContent = `High Score: ${formatTime(highscore)}`;
+        }
+
+        // Function to create a bullet
+        function createBullet() {
+            let bulletX, bulletY, dx, dy;
+            const side = Math.floor(Math.random() * 4); // 0 = top, 1 = bottom, 2 = left, 3 = right
+
+            if (side === 0) { // Top
+                bulletX = Math.random() * canvas.width;
+                bulletY = -10;
+            } else if (side === 1) { // Bottom
+                bulletX = Math.random() * canvas.width;
+                bulletY = canvas.height + 10;
+            } else if (side === 2) { // Left
+                bulletX = -10;
+                bulletY = Math.random() * canvas.height;
+            } else { // Right
+                bulletX = canvas.width + 10;
+                bulletY = Math.random() * canvas.height;
+            }
+
+            let targetX = centerX;
+            let targetY = centerY;
+            let angle = Math.atan2(targetY - bulletY, targetX - bulletX);
+            let randomFactor = Math.random() * 0.4 - 0.2;
+            angle += randomFactor;
+
+            dx = Math.cos(angle);
+            dy = Math.sin(angle);
+
+            bullets.push({ x: bulletX, y: bulletY, dx: dx, dy: dy });
+        }
+
+        // Function to update the player position using arrow keys
+        function updatePlayerPosition() {
+            if (isGameOver) return;
+
+            if (keys.ArrowUp) {
+                playerY = Math.max(centerY - playerBoxSize / 2, playerY - playerSpeed);
+            }
+            if (keys.ArrowDown) {
+                playerY = Math.min(centerY + playerBoxSize / 2 - playerSize, playerY + playerSpeed);
+            }
+            if (keys.ArrowLeft) {
+                playerX = Math.max(centerX - playerBoxSize / 2, playerX - playerSpeed);
+            }
+            if (keys.ArrowRight) {
+                playerX = Math.min(centerX + playerBoxSize / 2 - playerSize, playerX + playerSpeed);
+            }
+        }
+
+        // Function to update bullet positions
+        function updateBullets() {
+            for (let bullet of bullets) {
+                bullet.x += bullet.dx * bulletSpeed;
+                bullet.y += bullet.dy * bulletSpeed;
+            }
+        }
+
+       // Function to check for collisions with bullets
+function checkCollisions() {
+    for (let bullet of bullets) {
+        if (
+            bullet.x < playerX + playerSize &&
+            bullet.x + 10 > playerX &&
+            bullet.y < playerY + playerSize &&
+            bullet.y + 10 > playerY
+        ) {
+            // Collision detected, game over
+            isGameOver = true;
+            retryButton.style.display = "block"; // Show retry button
+            highscoreElement.style.display = "block"; // Show highscore display
+            clearInterval(timerInterval); // Stop the timer
+
+            // Check if this is a new highscore
+            if (timer > highscore) {
+                highscore = timer;
+                localStorage.setItem('highscore', highscore); // Update highscore in localStorage
+            }
+
+            updateHighscoreDisplay(); // Update highscore display
+            return;
+        }
+    }
+}
+
+
+        // Function to draw everything on the canvas
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the player (white square)
+            ctx.fillStyle = "white";
+            ctx.fillRect(playerX, playerY, playerSize, playerSize);
+
+            // Draw bullets
+            for (let bullet of bullets) {
+                ctx.fillStyle = "white";
+                ctx.fillRect(bullet.x, bullet.y, 10, 10);
+            }
+
+            // Draw player box boundary (visual)
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(centerX - playerBoxSize / 2, centerY - playerBoxSize / 2, playerBoxSize, playerBoxSize);  // Box now centered correctly
+        }
+
+        // Function to update the game state
+        function update() {
+            if (isGameOver) return;
+
+            // Create bullets at random intervals
+            if (Math.random() < 0.02) {
+                createBullet();
+            }
+
+            updatePlayerPosition();
+            updateBullets();
+            checkCollisions();
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        // Timer function
+        function updateTimer() {
+            if (!isGameOver) {
+                timer++;
+                timerElement.textContent = formatTime(timer);
+            }
+        }
+
+        // Format time as mm:ss
+        function formatTime(seconds) {
+            let minutes = Math.floor(seconds / 60);
+            let secondsRemaining = seconds % 60;
+            return `${minutes}:${secondsRemaining < 10 ? "0" + secondsRemaining : secondsRemaining}`;
+        }
+
+        // Function to restart the game
+function restartGame() {
+    isGameOver = false;
+    retryButton.style.display = "none"; // Hide retry button
+    highscoreElement.style.display = "none"; // Hide highscore during gameplay
+    playerX = centerX - playerSize / 2; // Start inside box center
+    playerY = centerY - playerSize / 2;
+    bullets.length = 0; // Clear bullets
+    timer = 0; // Reset timer
+    timerElement.textContent = "0:00"; // Reset timer display
+    clearInterval(timerInterval); // Clear any existing timer
+    timerInterval = setInterval(updateTimer, 1000); // Start the timer again
+    update(); // Restart the game loop
+}
+
+        // Key listener to track arrow key presses
+        let keys = {};
+        window.addEventListener("keydown", (e) => {
+            keys[e.key] = true;
+        });
+        window.addEventListener("keyup", (e) => {
+            keys[e.key] = false;
+        });
+
+        // Event listener for retry button
+        retryButton.addEventListener("click", restartGame);
+
+        // Event listener for start button
+        startButton.addEventListener("click", () => {
+            menu.style.display = "none"; // Hide the menu
+
+            // Choose and play a random song
+            chooseRandomSong();
+            backgroundMusic.play(); // Start the music
+
+            // When the song ends, pick a new random song and play it
+            backgroundMusic.onended = () => {
+                chooseRandomSong(); // Choose a new song
+                backgroundMusic.play(); // Play the new song
+            };
+
+            timerInterval = setInterval(updateTimer, 1000); // Start the timer
+            update(); // Start the game loop
+        });
+
+        // Start the game loop and timer (but only after the start button is clicked)
+        updateHighscoreDisplay(); // Display highscore when page loads
+    </script>
+</body>
+</html>
