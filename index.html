@@ -380,15 +380,32 @@ function updatePlayerPosition() {
     const offsetY = touchY;
 
     // Ensure the player stays within the movement box (playerBoxSize)
-    // Constrain playerX and playerY to the center of the box
     const minX = centerX - playerBoxSize / 2;
     const maxX = centerX + playerBoxSize / 2 - playerSize;
     const minY = centerY - playerBoxSize / 2;
     const maxY = centerY + playerBoxSize / 2 - playerSize;
 
-    playerX = Math.max(minX, Math.min(maxX, offsetX - playerSize / 2));
-    playerY = Math.max(minY, Math.min(maxY, offsetY - playerSize / 2));
-}
+    // Constrain the target position
+    const targetX = Math.max(minX, Math.min(maxX, offsetX - playerSize / 2));
+    const targetY = Math.max(minY, Math.min(maxY, offsetY - playerSize / 2));
+
+    // Calculate the movement direction
+    const dx = targetX - playerX;
+    const dy = targetY - playerY;
+
+    // Move the player towards the target position at the same speed as keyboard controls
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const moveSpeed = playerSpeed; // Use the same speed as keyboard movement
+
+    if (distance > moveSpeed) {
+        // Move towards the target position
+        playerX += (dx / distance) * moveSpeed;
+        playerY += (dy / distance) * moveSpeed;
+    } else {
+        // If the player is very close to the target, set the position directly
+        playerX = targetX;
+        playerY = targetY;
+    }
 
 // Game loop
 function update() {
